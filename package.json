@@ -1,0 +1,52 @@
+{
+  "name": "ark-infographic",
+  "version": "0.1.0",
+  "description": "ARK: Survival creature infographic generator",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./rasterizer": {
+      "types": "./dist/rasterizer.d.ts",
+      "import": "./dist/rasterizer.js",
+      "require": "./dist/rasterizer.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "ark",
+    "infographic",
+    "creature"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "fast-png": "^8.0.0"
+  },
+  "peerDependencies": {
+    "@resvg/resvg-wasm": "^2.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@resvg/resvg-wasm": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
