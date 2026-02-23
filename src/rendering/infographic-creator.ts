@@ -4,6 +4,7 @@ import type { InfoGraphicConfig } from "../models/config.js";
 import type { ServerSettings } from "../models/server-settings.js";
 import type { Color, ColorLookup, StringProvider } from "../models/interfaces.js";
 import { Sex } from "../models/creature.js";
+import type { TextAttrs } from "./svg-builder.js";
 import { SvgBuilder } from "./svg-builder.js";
 import { computeLayout } from "./layout.js";
 import { Stats, COLOR_REGION_COUNT, DISPLAY_ORDER, isPercentage } from "./stats-constants.js";
@@ -42,9 +43,21 @@ export function renderInfoGraphicSvg(
   const svg = new SvgBuilder(layout.width, layout.height);
 
   const fc = config.foreColor;
-  const fontName = config.fontName || "Arial";
+  const fontName = config.fontName || "Liberation Sans";
+
+  // ── Text outline attrs (spread into every text call) ───────────
+
+  const textStroke: Partial<TextAttrs> = config.textOutlineWidth > 0 ? {
+    stroke: config.textOutlineColor,
+    strokeWidth: config.textOutlineWidth * 2 + 1,
+    paintOrder: "stroke" as const,
+  } : {};
 
   // ── Background ──────────────────────────────────────────────────
+
+  if (config.backgroundImagePath) {
+    svg.image(config.backgroundImagePath, 0, 0, layout.width, layout.height);
+  }
 
   svg.rect(0, 0, layout.width, layout.height, { fill: config.backColor });
 
@@ -69,6 +82,7 @@ export function renderInfoGraphicSvg(
     fontSize: actualHeaderFontSize,
     fontWeight: "bold",
     fill: fc,
+    ...textStroke,
   });
 
   currentY += idiv(layout.contentHeight * 19, 180);
@@ -105,6 +119,7 @@ export function renderInfoGraphicSvg(
     fontFamily: fontName,
     fontSize: actualInfoFontSize,
     fill: fc,
+    ...textStroke,
   });
 
   currentY += idiv(layout.contentHeight * 17, 180);
@@ -128,25 +143,25 @@ export function renderInfoGraphicSvg(
     ? Math.trunc(layout.meanLetterWidth) : 0;
 
   svg.text(wLabel, layout.xRightLevelValue - wHeaderShift, currentY + layout.fontSize, {
-    fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+    fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
   });
 
   if (layout.displayMutatedLevels) {
     const mutShift = config.displayDomLevels ? Math.trunc(layout.meanLetterWidth) : 0;
     svg.text(strings.getString("M"), layout.xRightLevelMutValue - mutShift, currentY + layout.fontSize, {
-      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
     });
   }
 
   if (config.displayDomLevels) {
     svg.text(strings.getString("D"), layout.xRightLevelDomValue, currentY + layout.fontSize, {
-      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
     });
   }
 
   if (config.displayStatValues) {
     svg.text(strings.getString("Values"), layout.xRightBrValue, currentY + layout.fontSize, {
-      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
     });
   }
 
@@ -204,7 +219,7 @@ export function renderInfoGraphicSvg(
     svg.text(
       statName(si, true, species.statNames, strings),
       layout.xStatName, y + layout.fontSize,
-      { fontFamily: fontName, fontSize: layout.fontSize, fill: fc },
+      { fontFamily: fontName, fontSize: layout.fontSize, fill: fc, ...textStroke },
     );
 
     // Wild level number (right-aligned)
@@ -217,7 +232,7 @@ export function renderInfoGraphicSvg(
       : displayedLevel.toString() + pipeSuffix;
 
     svg.text(levelText, layout.xRightLevelValue, y + layout.fontSize, {
-      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+      fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
     });
 
     // Mutated level column
@@ -228,14 +243,14 @@ export function renderInfoGraphicSvg(
         : creature.levelsMutated[si].toString() + mutPipe;
 
       svg.text(mutText, layout.xRightLevelMutValue, y + layout.fontSize, {
-        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
       });
     }
 
     // Dom level column
     if (config.displayDomLevels) {
       svg.text(creature.levelsDom[si].toString(), layout.xRightLevelDomValue, y + layout.fontSize, {
-        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
       });
     }
 
@@ -252,14 +267,14 @@ export function renderInfoGraphicSvg(
         valueText = (100 * displayedValue).toFixed(1);
         // "%" drawn left-aligned at the right edge of the value column
         svg.text("%", layout.xRightBrValue, y + layout.fontSize, {
-          fontFamily: fontName, fontSize: layout.fontSize, fill: fc,
+          fontFamily: fontName, fontSize: layout.fontSize, fill: fc, ...textStroke,
         });
       } else {
         valueText = displayedValue.toFixed(1);
       }
 
       svg.text(valueText, layout.xRightBrValue, y + layout.fontSize, {
-        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end",
+        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, textAnchor: "end", ...textStroke,
       });
     }
   }
@@ -273,13 +288,29 @@ export function renderInfoGraphicSvg(
 
   let creatureImageShown = false;
   if (imageSize > 5 && creatureImageDataUri != null) {
-    svg.image(
-      creatureImageDataUri,
-      layout.width - imageSize - layout.borderAndPadding,
-      layout.height - imageSize - layout.borderAndPadding - layout.extraMarginBottom,
-      imageSize,
-      imageSize,
-    );
+    const imgX = layout.width - imageSize - layout.borderAndPadding;
+    const imgY = layout.height - imageSize - layout.borderAndPadding - layout.extraMarginBottom;
+
+    if (config.creatureOutlineWidth > 0) {
+      const outlineRadius = Math.min(config.creatureOutlineWidth, 100);
+      const blur = 1 + config.creatureOutlineBlurring * outlineRadius * 0.5;
+      const oc = config.creatureOutlineColor;
+      const filterXml =
+        `<filter id="creature-outline" x="-20%" y="-20%" width="140%" height="140%">` +
+        `<feMorphology operator="dilate" radius="${outlineRadius}" in="SourceAlpha" result="expanded"/>` +
+        `<feGaussianBlur stdDeviation="${blur}" in="expanded" result="blurred"/>` +
+        `<feFlood flood-color="rgb(${oc.r},${oc.g},${oc.b})" flood-opacity="${oc.a / 255}" result="color"/>` +
+        `<feComposite in="color" in2="blurred" operator="in" result="outline"/>` +
+        `<feMerge><feMergeNode in="outline"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+        `</filter>`;
+      svg.rawDefs(filterXml);
+
+      const g = svg.group({ filter: "url(#creature-outline)" });
+      g.image(creatureImageDataUri, imgX, imgY, imageSize, imageSize);
+      g.end();
+    } else {
+      svg.image(creatureImageDataUri, imgX, imgY, imageSize, imageSize);
+    }
     creatureImageShown = true;
   }
 
@@ -293,7 +324,7 @@ export function renderInfoGraphicSvg(
 
   // "Colors" header
   svg.text(strings.getString("Colors"), layout.xColor, currentY + layout.fontSize, {
-    fontFamily: fontName, fontSize: layout.fontSize, fill: fc,
+    fontFamily: fontName, fontSize: layout.fontSize, fill: fc, ...textStroke,
   });
 
   // Imprinting / TE (positioned next to "Colors" header)
@@ -303,11 +334,11 @@ export function renderInfoGraphicSvg(
 
     if (creature.isBred || creature.imprintingBonus > 0) {
       svg.text(`Imp: ${(creature.imprintingBonus * 100).toFixed(1)} %`, impX, currentY + layout.fontSize, {
-        fontFamily: fontName, fontSize: layout.fontSize, fill: fc,
+        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, ...textStroke,
       });
     } else if (creature.tamingEffectiveness >= 0) {
       svg.text(`TE: ${(creature.tamingEffectiveness * 100).toFixed(1)} %`, impX, currentY + layout.fontSize, {
-        fontFamily: fontName, fontSize: layout.fontSize, fill: fc,
+        fontFamily: fontName, fontSize: layout.fontSize, fill: fc, ...textStroke,
       });
     }
   }
@@ -357,7 +388,7 @@ export function renderInfoGraphicSvg(
       `[${ci}] ${creature.colors[ci]}${colorRegionName ?? ""}`,
       layout.xColor + layout.circleDiameter + 4,
       y + layout.fontSizeSmall,
-      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc },
+      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc, ...textStroke },
     );
   }
 
@@ -366,7 +397,7 @@ export function renderInfoGraphicSvg(
   if (creature.isMutagenApplied) {
     svg.text("Mutagen applied",
       layout.xColor, layout.height - layout.borderAndPadding,
-      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc },
+      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc, ...textStroke },
     );
   }
 
@@ -377,7 +408,7 @@ export function renderInfoGraphicSvg(
     svg.text(maxWildText,
       layout.width - layout.borderAndPadding,
       layout.height - layout.borderAndPadding,
-      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc, textAnchor: "end" },
+      { fontFamily: fontName, fontSize: layout.fontSizeSmall, fill: fc, textAnchor: "end", ...textStroke },
     );
   }
 

@@ -17,11 +17,16 @@ export interface InfoGraphicConfig {
   displayExtraRegionNames: boolean;
   displayRegionNamesIfNoImage: boolean;
   backgroundImagePath: string | null;
+  textOutlineColor: Color;
+  textOutlineWidth: number;
+  creatureOutlineColor: Color;
+  creatureOutlineWidth: number;
+  creatureOutlineBlurring: number;
 }
 
 export const DEFAULT_CONFIG: InfoGraphicConfig = {
   height: 180,
-  fontName: "Arial",
+  fontName: "Liberation Sans",
   foreColor: { r: 0, g: 0, b: 0, a: 255 },
   backColor: { r: 255, g: 255, b: 255, a: 255 },
   borderColor: { r: 0, g: 0, b: 0, a: 255 },
@@ -36,4 +41,9 @@ export const DEFAULT_CONFIG: InfoGraphicConfig = {
   displayExtraRegionNames: false,
   displayRegionNamesIfNoImage: true,
   backgroundImagePath: null,
+  textOutlineColor: { r: 255, g: 255, b: 255, a: 255 },
+  textOutlineWidth: 0,
+  creatureOutlineColor: { r: 255, g: 255, b: 255, a: 255 },
+  creatureOutlineWidth: 0,
+  creatureOutlineBlurring: 0.8,
 };

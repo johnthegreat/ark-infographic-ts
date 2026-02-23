@@ -15,6 +15,9 @@ export interface TextAttrs {
   fontWeight?: "normal" | "bold";
   fill?: Color;
   textAnchor?: "start" | "middle" | "end";
+  stroke?: Color;
+  strokeWidth?: number;
+  paintOrder?: "stroke";
 }
 
 export interface EllipseAttrs {
@@ -37,6 +40,7 @@ export interface GradientStop {
 
 export interface GroupAttrs {
   opacity?: number;
+  filter?: string;
 }
 
 // ── SVG element types ─────────────────────────────────────────────
@@ -102,6 +106,11 @@ interface RadialGradientElement {
   stops: GradientStop[];
 }
 
+interface RawDefsElement {
+  type: "rawDefs";
+  content: string;
+}
+
 type SvgElement =
   | RectElement
   | TextElement
@@ -110,7 +119,8 @@ type SvgElement =
   | LineElement
   | GroupElement
   | DefsElement
-  | RadialGradientElement;
+  | RadialGradientElement
+  | RawDefsElement;
 
 // ── XML helpers ───────────────────────────────────────────────────
 
@@ -151,6 +161,8 @@ function serializeElement(el: SvgElement): string {
       return serializeDefs(el);
     case "radialGradient":
       return serializeRadialGradient(el);
+    case "rawDefs":
+      return `<defs>${el.content}</defs>`;
   }
 }
 
@@ -193,6 +205,13 @@ function serializeText(el: TextElement): string {
     if (op < 1) s += ` fill-opacity="${op}"`;
   }
   if (a.textAnchor && a.textAnchor !== "start") s += ` text-anchor="${a.textAnchor}"`;
+  if (a.stroke) {
+    s += ` stroke="${colorToSvg(a.stroke)}"`;
+    const sop = colorOpacity(a.stroke);
+    if (sop < 1) s += ` stroke-opacity="${sop}"`;
+  }
+  if (a.strokeWidth != null) s += ` stroke-width="${a.strokeWidth}"`;
+  if (a.paintOrder) s += ` paint-order="${a.paintOrder}"`;
 
   s += `>${escapeXml(el.content)}</text>`;
   return s;
@@ -244,6 +263,7 @@ function serializeLine(el: LineElement): string {
 function serializeGroup(el: GroupElement): string {
   let s = `<g`;
   if (el.attrs.opacity != null) s += ` opacity="${el.attrs.opacity}"`;
+  if (el.attrs.filter) s += ` filter="${escapeXml(el.attrs.filter)}"`;
   s += `>`;
   for (const child of el.children) {
     s += serializeElement(child);
@@ -342,6 +362,12 @@ export class SvgBuilder {
 
   radialGradient(id: string, stops: GradientStop[]): this {
     this.elements.push({ type: "radialGradient", id, stops });
+    return this;
+  }
+
+  /** Inject raw SVG content wrapped in a `<defs>` element. */
+  rawDefs(content: string): this {
+    this.elements.push({ type: "rawDefs", content });
     return this;
   }
 
