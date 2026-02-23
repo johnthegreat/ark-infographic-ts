@@ -32,7 +32,7 @@
     "infographic",
     "creature"
   ],
-  "license": "ISC",
+  "license": "0BSD",
   "dependencies": {
     "fast-png": "^8.0.0"
   },
